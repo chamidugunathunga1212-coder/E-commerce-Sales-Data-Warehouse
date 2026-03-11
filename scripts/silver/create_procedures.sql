@@ -98,6 +98,35 @@ GO
 
 
 
+-- create silver.usp_load_orders procedure
+
+CREATE OR ALTER PROCEDURE silver.usp_load_sellers
+AS
+    BEGIN
+
+        TRUNCATE TABLE silver.sellers;
+
+        INSERT INTO silver.sellers (
+            seller_id,
+            seller_zip_code_prefix,
+            seller_city,
+            seller_state
+        )
+
+        SELECT 
+	        TRIM(REPLACE(seller_id,'"','')) AS seller_id,
+	        TRY_CAST(TRIM(REPLACE(seller_zip_code_prefix,'"','')) AS INT ) AS seller_zip_code_prefix,
+	        UPPER(TRIM(seller_city)) AS seller_city,
+	        UPPER(RIGHT(TRIM(REPLACE(seller_state,'"','')),2)) AS seller_state
+        FROM bronze.sellers;
+
+    END;
+GO
+
+
+
+
+
 
 
 
