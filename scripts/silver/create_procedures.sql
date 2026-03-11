@@ -130,6 +130,82 @@ GO
 
 
 
+CREATE OR ALTER PROCEDURE silver.usp_load_products
+AS
+    BEGIN
+
+        TRUNCATE TABLE silver.products;
+
+        INSERT INTO silver.products (
+            product_id,
+            product_category_name,
+            product_category_name_english,
+            product_name_length,
+            product_description_length,
+            product_photos_qty,
+            product_weight_g,
+            product_length_cm,
+            product_height_cm,
+            product_width_cm
+
+        )
+        SELECT 
+            REPLACE(TRIM(p.product_id), '"', '') AS product_id,
+
+            CASE
+                WHEN p.product_category_name IS NULL OR TRIM(p.product_category_name) = '' THEN 'UNKNOWN'
+                ELSE TRIM(p.product_category_name)
+            END AS product_category_name,
+
+            CASE
+                WHEN t.product_category_name_english IS NULL OR TRIM(t.product_category_name_english) = '' THEN 'UNKNOWN'
+                ELSE TRIM(t.product_category_name_english)
+            END AS product_category_name_english,
+
+            CASE
+                WHEN p.product_name_lenght IS NULL OR TRIM(p.product_name_lenght) = '' THEN 0
+                ELSE TRY_CAST(TRIM(p.product_name_lenght) AS INT)
+            END AS product_name_lenght,
+
+
+
+            CASE
+                WHEN p.product_description_lenght IS NULL OR TRIM(p.product_description_lenght) = '' THEN 0
+                ELSE TRY_CAST(TRIM(p.product_description_lenght) AS INT)
+            END AS product_description_lenght,
+
+            CASE
+                WHEN p.product_photos_qty IS NULL OR TRIM(p.product_photos_qty) = '' THEN 0
+                ELSE TRY_CAST(TRIM(p.product_photos_qty) AS INT)
+            END AS product_photos_qty,
+
+            CASE
+                WHEN p.product_weight_g IS NULL OR TRIM(p.product_weight_g) = '' THEN 0
+                ELSE TRY_CAST(TRIM(p.product_weight_g) AS INT)
+            END AS product_weight_g,
+
+            CASE
+                WHEN p.product_length_cm IS NULL OR TRIM(p.product_length_cm) = '' THEN 0
+                ELSE TRY_CAST(TRIM(p.product_length_cm) AS DECIMAL(10,2))
+            END AS product_length_cm,
+
+            CASE
+                WHEN p.product_height_cm IS NULL OR TRIM(p.product_height_cm) = '' THEN 0
+                ELSE TRY_CAST(TRIM(p.product_height_cm) AS DECIMAL(10,2))
+            END AS product_height_cm,
+
+            CASE
+                WHEN p.product_width_cm IS NULL OR TRIM(p.product_width_cm) = '' THEN 0
+                ELSE TRY_CAST(TRIM(p.product_width_cm) AS DECIMAL(10,2))
+            END AS product_width_cm
+        FROM bronze.products AS p
+        LEFT JOIN bronze.category_translation AS t
+        ON TRIM(p.product_category_name) = TRIM(t.product_category_name);
+    END;
+GO
+
+
+
 
 
 
