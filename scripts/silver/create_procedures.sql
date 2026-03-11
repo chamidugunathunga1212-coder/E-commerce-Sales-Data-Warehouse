@@ -206,6 +206,50 @@ GO
 
 
 
+CREATE OR ALTER PROCEDURE silver.usp_load_payments
+AS
+    BEGIN
+
+        TRUNCATE TABLE silver.payments;
+
+
+        INSERT INTO silver.payments (
+            order_id,
+            payment_sequential,
+            payment_type,
+            payment_installments,
+            payment_value
+        )
+
+
+        SELECT 
+            REPLACE(TRIM(order_id), '"', '') AS order_id,
+
+            TRY_CAST(TRIM(payment_sequential) AS INT) AS payment_sequential,
+
+            CASE 
+                WHEN payment_type IS NULL OR TRIM(payment_type) = '' THEN 'UNKNOWN'
+                WHEN LOWER(TRIM(payment_type)) = 'credit_card' THEN 'credit_card'
+                WHEN LOWER(TRIM(payment_type)) = 'debit_card' THEN 'debit_card'
+                WHEN LOWER(TRIM(payment_type)) = 'voucher' THEN 'voucher'
+                WHEN LOWER(TRIM(payment_type)) = 'boleto' THEN 'boleto'
+                ELSE 'UNKNOWN'
+            END AS payment_type,
+
+            CASE
+                WHEN payment_installments IS NULL OR TRIM(payment_installments) = '' THEN 0
+                ELSE TRY_CAST(TRIM(payment_installments) AS INT)
+            END AS payment_installments,
+
+            CASE
+                WHEN payment_value IS NULL OR TRIM(payment_value) = '' THEN 0
+                ELSE TRY_CAST(TRIM(payment_value) AS DECIMAL(10,2))
+            END AS payment_value
+
+        FROM bronze.payments;
+    END;
+GO
+
 
 
 
