@@ -66,3 +66,47 @@ AS
         FROM bronze.order_items;
     END;
 GO
+
+-- create silver.usp_load_customers procedure
+
+CREATE OR ALTER PROCEDURE silver.usp_load_customers
+AS
+    BEGIN
+
+        TRUNCATE TABLE silver.customers;
+
+        INSERT INTO silver.customers (
+            customer_id,
+            customer_unique_id,
+            customer_zip_code_prefix,
+            customer_city,
+            customer_state
+        )
+        SELECT 
+            TRIM(REPLACE(customer_id,'"','')) AS customer_id,
+            TRIM(REPLACE(customer_unique_id,'"','')) AS customer_unique_id,
+            TRY_CAST(REPLACE(customer_zip_code_prefix,'"','') AS INT) AS customer_zip_code_prefix,
+            UPPER(TRIM(customer_city)) AS customer_city,
+            UPPER(TRIM(customer_state)) AS customer_state
+        FROM bronze.customers;
+
+    END;
+GO
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
