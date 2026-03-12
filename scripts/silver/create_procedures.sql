@@ -253,6 +253,42 @@ GO
 
 
 
+CREATE OR ALTER PROCEDURE silver.usp_load_reviews
+AS
+    BEGIN
+
+        TRUNCATE TABLE silver.reviews;
+
+        INSERT INTO silver.reviews (
+            review_id,
+            order_id,
+            review_score,
+            review_comment_title,
+            review_comment_message,
+            review_creation_date,
+            review_answer_timestamp
+        )
+        SELECT 
+	        REPLACE(TRIM(review_id),'"','') AS review_id,
+	        REPLACE(TRIM(order_id),'"','') AS order_id,
+            CASE 
+                WHEN TRY_CAST(TRIM(review_score) AS INT) BETWEEN 1 AND 5 
+                    THEN TRY_CAST(TRIM(review_score) AS INT)
+                ELSE 0
+            END AS review_score,
+
+            NULLIF(TRIM(review_comment_title), '') AS review_comment_title,
+            NULLIF(TRIM(review_comment_message), '') AS review_comment_message,
+            TRY_CAST(TRIM(review_creation_date) AS DATE) AS review_creation_date,
+            TRY_CAST(TRIM(review_answer_timestamp) AS DATETIME2) AS review_answer_timestamp
+        FROM bronze.reviews;
+    END;
+GO
+
+
+
+
+
 
 
 
