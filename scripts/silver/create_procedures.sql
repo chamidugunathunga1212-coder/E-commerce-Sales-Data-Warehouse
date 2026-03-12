@@ -287,6 +287,29 @@ GO
 
 
 
+CREATE OR ALTER PROCEDURE silver.usp_load_geolocation
+AS
+    BEGIN
+
+        TRUNCATE TABLE silver.geolocation;
+
+        INSERT INTO silver.geolocation (
+            geolocation_zip_code_prefix,
+            geolocation_lat,
+            geolocation_lng,
+            geolocation_city,
+            geolocation_state
+        )
+
+        SELECT 
+            TRY_CAST(REPLACE(TRIM(geolocation_zip_code_prefix), '"', '') AS INT) AS geolocation_zip_code_prefix,
+            TRY_CAST(TRIM(geolocation_lat) AS DECIMAL(10,6)) AS geolocation_lat,
+            TRY_CAST(TRIM(geolocation_lng) AS DECIMAL(10,6)) AS geolocation_lng,
+            NULLIF(UPPER(TRIM(geolocation_city)), '') AS geolocation_city,
+            TRY_CAST(UPPER(TRIM(geolocation_state)) AS CHAR(2)) AS geolocation_state
+        FROM bronze.geolocation;
+    END;
+GO
 
 
 
