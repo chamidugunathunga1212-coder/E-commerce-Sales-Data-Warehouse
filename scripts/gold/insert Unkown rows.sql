@@ -59,6 +59,18 @@ GO
 
 
 
+INSERT INTO gold.dim_date (
+    date_key,
+    full_date,
+    day_number, 
+    month_number, 
+    month_name,
+    quarter_number,
+    year_number,
+    weekday_name
+)
+VALUES (0, '1900-01-01', 1, 1, 'Unknown', 1, 1900, 'Unknown');
+GO
 
 
 
