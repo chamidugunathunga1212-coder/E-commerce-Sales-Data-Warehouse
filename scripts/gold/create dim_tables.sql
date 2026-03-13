@@ -43,15 +43,33 @@ GO
 
 
 -- create DimDate
+IF OBJECT_ID('gold.dim_date', 'U') IS NOT NULL
+    DROP TABLE gold.dim_date;
+GO
 
 CREATE TABLE gold.dim_date (
-    date_key INT PRIMARY KEY,
-    full_date DATE NOT NULL,
-    day_number INT NOT NULL,
-    month_number INT NOT NULL,
-    month_name VARCHAR(20) NOT NULL,
-    quarter_number INT NOT NULL,
-    year_number INT NOT NULL,
-    weekday_name VARCHAR(20) NOT NULL
+    date_key            INT PRIMARY KEY,
+    full_date           DATE NOT NULL,
+    day_number          INT NOT NULL,
+    month_number        INT NOT NULL,
+    month_name          VARCHAR(20) NOT NULL,
+    short_month_name    CHAR(3) NOT NULL,
+    quarter_number      INT NOT NULL,
+    year_number         INT NOT NULL,
+    weekday_number      INT NOT NULL,
+    weekday_name        VARCHAR(20) NOT NULL,
+    short_weekday_name  CHAR(3) NOT NULL,
+    week_of_year        INT NOT NULL,
+    is_weekend          BIT NOT NULL,
+    is_month_start      BIT NOT NULL,
+    is_month_end        BIT NOT NULL,
+    is_year_start       BIT NOT NULL,
+    is_year_end         BIT NOT NULL,
+    month_start_date    DATE NOT NULL,
+    month_end_date      DATE NOT NULL,
+    year_start_date     DATE NOT NULL,
+    year_end_date       DATE NOT NULL,
+    year_month          CHAR(7) NOT NULL,
+    year_week           VARCHAR(8) NOT NULL,
 );
 GO
