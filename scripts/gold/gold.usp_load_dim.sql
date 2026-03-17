@@ -140,3 +140,57 @@ BEGIN
 END;
 
 
+-- gold.usp_load_sellers
+
+CREATE PROCEDURE gold.usp_load_dim_seller
+AS
+BEGIN
+
+    MERGE gold.dim_seller AS target
+    USING (
+        SELECT DISTINCT
+            seller_id,
+            TRY_CAST(seller_zip_code_prefix AS INT) AS seller_zip_code_prefix,
+            TRIM(seller_city) AS seller_city,
+            TRIM(seller_state) AS seller_state
+        FROM silver.sellers
+        WHERE seller_id IS NOT NULL
+    ) AS source
+    ON target.seller_id = source.seller_id
+
+    -- UPDATE existing records
+    WHEN MATCHED THEN
+        UPDATE SET
+            target.seller_zip_code_prefix = source.seller_zip_code_prefix,
+            target.seller_city = source.seller_city,
+            target.seller_state = source.seller_state,
+            target.updated_date = GETDATE()
+
+    -- INSERT new records
+    WHEN NOT MATCHED THEN
+        INSERT (
+            seller_id,
+            seller_zip_code_prefix,
+            seller_city,
+            seller_state,
+            created_date,
+            updated_date
+        )
+        VALUES (
+            source.seller_id,
+            source.seller_zip_code_prefix,
+            source.seller_city,
+            source.seller_state,
+            GETDATE(),
+            GETDATE()
+        );
+
+END;
+
+
+
+
+
+
+
+
