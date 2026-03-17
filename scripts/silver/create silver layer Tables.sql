@@ -89,3 +89,15 @@ CREATE TABLE silver.geolocation (
 );
 GO
 
+
+CREATE TABLE gold.dim_seller (
+    seller_key INT IDENTITY(1,1) PRIMARY KEY,
+    seller_id VARCHAR(50) NOT NULL,
+    seller_zip_code_prefix INT NULL,
+    seller_city VARCHAR(100) NULL,
+    seller_state VARCHAR(10) NULL,
+    created_date DATETIME NOT NULL,
+    updated_date DATETIME NOT NULL
+);
+GO
+
