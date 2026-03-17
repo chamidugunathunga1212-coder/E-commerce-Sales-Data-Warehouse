@@ -101,6 +101,37 @@ END
 GO
 
 
+IF NOT EXISTS (SELECT 1 FROM gold.dim_product WHERE product_key = 0)
+BEGIN
+    SET IDENTITY_INSERT gold.dim_product ON;
+
+    INSERT INTO gold.dim_product (
+        product_key,
+        product_id,
+        product_category_name,
+        product_category_name_english,
+        product_name_length,
+        product_description_length,
+        product_photos_qty,
+        product_weight_g,
+        product_length_cm,
+        product_height_cm,
+        product_width_cm,
+        created_date,
+        updated_date
+    )
+    VALUES (
+        0, 'UNKNOWN', 'UNKNOWN', 'UNKNOWN',
+        0, 0, 0, 0, 0, 0, 0,
+        GETDATE(), GETDATE()
+    );
+
+    SET IDENTITY_INSERT gold.dim_product OFF;
+END
+
+GO
+
+
 
 SELECT *
 FROM gold.dim_customer;
