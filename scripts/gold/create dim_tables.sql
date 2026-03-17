@@ -6,10 +6,12 @@ CREATE TABLE gold.dim_customer (
     customer_unique_id VARCHAR(50) NULL,
     customer_zip_code_prefix INT NULL,
     customer_city VARCHAR(100) NULL,
-    customer_state CHAR(2) NULL
+    customer_state VARCHAR(10) NULL,
+    created_date DATETIME NOT NULL,
+    updated_date DATETIME NOT NULL
 );
-GO
 
+GO
 
 -- create DimSeller
 
