@@ -79,7 +79,26 @@ VALUES (0, '1900-01-01', 1, 1, 'Unknown', 1, 1900, 'Unknown');
 GO
 
 
+IF NOT EXISTS (SELECT 1 FROM gold.dim_seller WHERE seller_key = 0)
+BEGIN
+    SET IDENTITY_INSERT gold.dim_seller ON;
 
+    INSERT INTO gold.dim_seller (
+        seller_key,
+        seller_id,
+        seller_zip_code_prefix,
+        seller_city,
+        seller_state,
+        created_date,
+        updated_date
+    )
+    VALUES (0, 'UNKNOWN', 0, 'UNKNOWN', 'UN', GETDATE(), GETDATE());
+
+    SET IDENTITY_INSERT gold.dim_seller OFF;
+END
+
+
+GO
 
 
 
