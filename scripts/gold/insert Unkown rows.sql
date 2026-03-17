@@ -1,19 +1,25 @@
 SET IDENTITY_INSERT gold.dim_customer ON;
 
-INSERT INTO gold.dim_customer (
-    customer_key,
-    customer_id,
-    customer_unique_id,
-    customer_zip_code_prefix,
-    customer_city,
-    customer_state
-)
-VALUES (0, 'UNKNOWN', 'UNKNOWN', 0, 'UNKNOWN', 'UN');
+IF NOT EXISTS (SELECT 1 FROM gold.dim_customer WHERE customer_key = 0)
+BEGIN
+    SET IDENTITY_INSERT gold.dim_customer ON;
 
-SET IDENTITY_INSERT gold.dim_customer OFF;
-GO
+    INSERT INTO gold.dim_customer (
+        customer_key,
+        customer_id,
+        customer_unique_id,
+        customer_zip_code_prefix,
+        customer_city,
+        customer_state,
+        created_date,
+        updated_date
+    )
+    VALUES (0, 'UNKNOWN', 'UNKNOWN', 0, 'UNKNOWN', 'UN', GETDATE(), GETDATE());
 
+    SET IDENTITY_INSERT gold.dim_customer OFF;
+END
 
+Go
 
 
 
