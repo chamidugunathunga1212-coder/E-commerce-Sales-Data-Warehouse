@@ -75,3 +75,22 @@ CREATE TABLE gold.dim_date (
     year_week           VARCHAR(8) NOT NULL,
 );
 GO
+
+
+-- create Dimproduct
+
+CREATE TABLE gold.dim_product (
+    product_key INT IDENTITY(1,1) PRIMARY KEY,
+    product_id VARCHAR(50) NOT NULL,
+    product_category_name VARCHAR(100) NULL,
+    product_category_name_english VARCHAR(100) NULL,
+    product_name_length INT NULL,
+    product_description_length INT NULL,
+    product_photos_qty INT NULL,
+    product_weight_g INT NULL,
+    product_length_cm INT NULL,
+    product_height_cm INT NULL,
+    product_width_cm INT NULL,
+    created_date DATETIME NOT NULL,
+    updated_date DATETIME NOT NULL
+);
