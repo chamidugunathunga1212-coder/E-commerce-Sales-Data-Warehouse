@@ -366,7 +366,7 @@ BEGIN
 END;
 GO
 
--- 6. create silver.usp_load_products procedure
+-- 6. create silver.usp_load_payments procedure
 CREATE OR ALTER PROCEDURE silver.usp_load_payments
 AS
 BEGIN
@@ -428,14 +428,35 @@ GO
 
 
 
-
-
-
+-- 7. create silver.usp_load_reviews procedure
 CREATE OR ALTER PROCEDURE silver.usp_load_reviews
 AS
-    BEGIN
+BEGIN
+    SET NOCOUNT ON;
 
+    DECLARE @row_count INT;
+
+    BEGIN TRY
+
+        -- START LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status)
+        VALUES ('usp_load_reviews', 'Silver', 'START');
+
+        -- MAIN LOGIC
         TRUNCATE TABLE silver.reviews;
+
+        WITH cleaned_data AS (
+            SELECT 
+                REPLACE(TRIM(review_id), '"', '') AS review_id,
+                REPLACE(TRIM(order_id), '"', '') AS order_id,
+                TRY_CAST(TRIM(review_score) AS INT) AS review_score,
+                NULLIF(TRIM(review_comment_title), '') AS review_comment_title,
+                NULLIF(TRIM(review_comment_message), '') AS review_comment_message,
+                TRY_CAST(TRIM(review_creation_date) AS DATE) AS review_creation_date,
+                TRY_CAST(TRIM(review_answer_timestamp) AS DATETIME2) AS review_answer_timestamp
+            FROM bronze.reviews
+            WHERE order_id IS NOT NULL
+        )
 
         INSERT INTO silver.reviews (
             review_id,
@@ -446,21 +467,36 @@ AS
             review_creation_date,
             review_answer_timestamp
         )
-        SELECT 
-	        REPLACE(TRIM(review_id),'"','') AS review_id,
-	        REPLACE(TRIM(order_id),'"','') AS order_id,
+        SELECT
+            review_id,
+            order_id,
             CASE 
-                WHEN TRY_CAST(TRIM(review_score) AS INT) BETWEEN 1 AND 5 
-                    THEN TRY_CAST(TRIM(review_score) AS INT)
+                WHEN review_score BETWEEN 1 AND 5 THEN review_score
                 ELSE 0
-            END AS review_score,
+            END,
+            review_comment_title,
+            review_comment_message,
+            review_creation_date,
+            review_answer_timestamp
+        FROM cleaned_data;
 
-            NULLIF(TRIM(review_comment_title), '') AS review_comment_title,
-            NULLIF(TRIM(review_comment_message), '') AS review_comment_message,
-            TRY_CAST(TRIM(review_creation_date) AS DATE) AS review_creation_date,
-            TRY_CAST(TRIM(review_answer_timestamp) AS DATETIME2) AS review_answer_timestamp
-        FROM bronze.reviews;
-    END;
+        SET @row_count = @@ROWCOUNT;
+
+        -- SUCCESS LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status, rows_processed)
+        VALUES ('usp_load_reviews', 'Silver', 'SUCCESS', @row_count);
+
+    END TRY
+    BEGIN CATCH
+
+        -- ERROR LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status, error_message)
+        VALUES ('usp_load_reviews', 'Silver', 'FAILED', ERROR_MESSAGE());
+
+        THROW;
+
+    END CATCH
+END;
 GO
 
 
