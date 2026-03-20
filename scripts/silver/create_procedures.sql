@@ -91,7 +91,7 @@ BEGIN
             process_name, layer, status
         )
         VALUES (
-            'usp_load_orders', 'Silver', 'START'
+            'usp_load_order_items', 'Silver', 'START'
         );
 
         -- MAIN LOGIC
@@ -124,7 +124,7 @@ BEGIN
             process_name, layer, status, rows_processed
         )
         VALUES (
-            'usp_load_orders', 'Silver', 'SUCCESS', @row_count
+            'usp_load_order_items', 'Silver', 'SUCCESS', @row_count
         );
 
     END TRY
@@ -136,18 +136,37 @@ BEGIN
             process_name, layer, status, error_message
         )
         VALUES (
-            'usp_load_orders', 'Silver', 'FAILED', ERROR_MESSAGE()
+            'usp_load_order_items', 'Silver', 'FAILED', ERROR_MESSAGE()
         );
 
     END CATCH
 END;     
+
+
+
+
+
             
--- create silver.usp_load_customers procedure
+-- 3. create silver.usp_load_customers procedure
 
 CREATE OR ALTER PROCEDURE silver.usp_load_customers
 AS
-    BEGIN
+BEGIN
+    SET NOCOUNT ON;
 
+    DECLARE @row_count INT;
+
+    BEGIN TRY
+
+        -- 🔹 START LOG
+        INSERT INTO etl.etl_logs (
+            process_name, layer, status
+        )
+        VALUES (
+            'usp_load_customers', 'Silver', 'START'
+        );
+
+        -- 🔹 MAIN LOGIC
         TRUNCATE TABLE silver.customers;
 
         INSERT INTO silver.customers (
@@ -158,16 +177,41 @@ AS
             customer_state
         )
         SELECT 
-            TRIM(REPLACE(customer_id,'"','')) AS customer_id,
-            TRIM(REPLACE(customer_unique_id,'"','')) AS customer_unique_id,
-            TRY_CAST(REPLACE(customer_zip_code_prefix,'"','') AS INT) AS customer_zip_code_prefix,
-            UPPER(TRIM(customer_city)) AS customer_city,
-            UPPER(TRIM(customer_state)) AS customer_state
-        FROM bronze.customers;
+            TRIM(REPLACE(customer_id,'"','')),
+            TRIM(REPLACE(customer_unique_id,'"','')),
+            TRY_CAST(REPLACE(customer_zip_code_prefix,'"','') AS INT),
+            UPPER(TRIM(customer_city)),
+            UPPER(TRIM(customer_state))
+        FROM bronze.customers
+        WHERE customer_id IS NOT NULL;
 
-    END;
+        SET @row_count = @@ROWCOUNT;
+
+        -- 🔹 SUCCESS LOG
+        INSERT INTO etl.etl_logs (
+            process_name, layer, status, rows_processed
+        )
+        VALUES (
+            'usp_load_customers', 'Silver', 'SUCCESS', @row_count
+        );
+
+    END TRY
+    BEGIN CATCH
+
+        -- 🔹 ERROR LOG
+        INSERT INTO etl.etl_logs (
+            process_name, layer, status, error_message
+        )
+        VALUES (
+            'usp_load_customers', 'Silver', 'FAILED', ERROR_MESSAGE()
+        );
+
+        THROW;
+
+    END CATCH
+END;
 GO
-
+	
 
 
 -- create silver.usp_load_orders procedure
