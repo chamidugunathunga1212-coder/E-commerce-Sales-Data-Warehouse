@@ -366,13 +366,22 @@ BEGIN
 END;
 GO
 
-
+-- 6. create silver.usp_load_products procedure
 CREATE OR ALTER PROCEDURE silver.usp_load_payments
 AS
-    BEGIN
+BEGIN
+    SET NOCOUNT ON;
 
+    DECLARE @row_count INT;
+
+    BEGIN TRY
+
+        -- START LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status)
+        VALUES ('usp_load_payments', 'Silver', 'START');
+
+        -- MAIN LOGIC
         TRUNCATE TABLE silver.payments;
-
 
         INSERT INTO silver.payments (
             order_id,
@@ -381,35 +390,43 @@ AS
             payment_installments,
             payment_value
         )
-
-
         SELECT 
-            REPLACE(TRIM(order_id), '"', '') AS order_id,
+            REPLACE(TRIM(order_id), '"', ''),
 
-            TRY_CAST(TRIM(payment_sequential) AS INT) AS payment_sequential,
+            TRY_CAST(TRIM(payment_sequential) AS INT),
 
-            CASE 
-                WHEN payment_type IS NULL OR TRIM(payment_type) = '' THEN 'UNKNOWN'
-                WHEN LOWER(TRIM(payment_type)) = 'credit_card' THEN 'credit_card'
-                WHEN LOWER(TRIM(payment_type)) = 'debit_card' THEN 'debit_card'
-                WHEN LOWER(TRIM(payment_type)) = 'voucher' THEN 'voucher'
-                WHEN LOWER(TRIM(payment_type)) = 'boleto' THEN 'boleto'
-                ELSE 'UNKNOWN'
-            END AS payment_type,
+            ISNULL(
+                NULLIF(LOWER(TRIM(payment_type)), ''),
+                'UNKNOWN'
+            ),
 
-            CASE
-                WHEN payment_installments IS NULL OR TRIM(payment_installments) = '' THEN 0
-                ELSE TRY_CAST(TRIM(payment_installments) AS INT)
-            END AS payment_installments,
+            ISNULL(TRY_CAST(TRIM(payment_installments) AS INT), 0),
 
-            CASE
-                WHEN payment_value IS NULL OR TRIM(payment_value) = '' THEN 0
-                ELSE TRY_CAST(TRIM(payment_value) AS DECIMAL(10,2))
-            END AS payment_value
+            ISNULL(TRY_CAST(TRIM(payment_value) AS DECIMAL(10,2)), 0)
 
-        FROM bronze.payments;
-    END;
+        FROM bronze.payments
+        WHERE order_id IS NOT NULL;
+
+        SET @row_count = @@ROWCOUNT;
+
+        -- SUCCESS LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status, rows_processed)
+        VALUES ('usp_load_payments', 'Silver', 'SUCCESS', @row_count);
+
+    END TRY
+    BEGIN CATCH
+
+        -- ERROR LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status, error_message)
+        VALUES ('usp_load_payments', 'Silver', 'FAILED', ERROR_MESSAGE());
+
+        THROW;
+
+    END CATCH
+END;
 GO
+
+
 
 
 
