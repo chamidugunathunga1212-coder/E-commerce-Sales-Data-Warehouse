@@ -1,49 +1,3 @@
--- create DimCustomer
-
-CREATE TABLE gold.dim_customer (
-    customer_key INT IDENTITY(1,1) PRIMARY KEY,
-    customer_id VARCHAR(50) NOT NULL,
-    customer_unique_id VARCHAR(50) NULL,
-    customer_zip_code_prefix INT NULL,
-    customer_city VARCHAR(100) NULL,
-    customer_state VARCHAR(10) NULL,
-    created_date DATETIME NOT NULL,
-    updated_date DATETIME NOT NULL
-);
-
-GO
-
--- create DimSeller
-
-CREATE TABLE gold.dim_seller (
-    seller_key INT IDENTITY(1,1) PRIMARY KEY,
-    seller_id VARCHAR(50) NOT NULL,
-    seller_zip_code_prefix INT NULL,
-    seller_city VARCHAR(100) NULL,
-    seller_state CHAR(2) NULL
-);
-GO
-
-
-
--- create DimProduct
-
-CREATE TABLE gold.dim_product (
-    product_key INT IDENTITY(1,1) PRIMARY KEY,
-    product_id VARCHAR(50) NOT NULL,
-    product_category_name VARCHAR(100) NULL,
-    product_category_name_english VARCHAR(100) NULL,
-    product_name_length INT NULL,
-    product_description_length INT NULL,
-    product_photos_qty INT NULL,
-    product_weight_g INT NULL,
-    product_length_cm DECIMAL(10,2) NULL,
-    product_height_cm DECIMAL(10,2) NULL,
-    product_width_cm DECIMAL(10,2) NULL
-);
-GO
-
-
 -- create DimDate
 IF OBJECT_ID('gold.dim_date', 'U') IS NOT NULL
     DROP TABLE gold.dim_date;
@@ -77,20 +31,51 @@ CREATE TABLE gold.dim_date (
 GO
 
 
--- create Dimproduct
+-- dim_customer
+
+CREATE TABLE gold.dim_customer (
+    customer_key INT IDENTITY(1,1) PRIMARY KEY,
+    customer_id VARCHAR(50) NOT NULL UNIQUE,
+    customer_unique_id VARCHAR(50),
+    customer_zip_code_prefix INT,
+    customer_city VARCHAR(100),
+    customer_state VARCHAR(10),
+    created_date DATETIME DEFAULT GETDATE(),
+    updated_date DATETIME DEFAULT GETDATE()
+);
+
+GO
+-- dim_seller
+
+CREATE TABLE gold.dim_seller (
+    seller_key INT IDENTITY(1,1) PRIMARY KEY,
+    seller_id VARCHAR(50) NOT NULL UNIQUE,
+    seller_zip_code_prefix INT,
+    seller_city VARCHAR(100),
+    seller_state CHAR(2),
+    created_date DATETIME DEFAULT GETDATE(),
+    updated_date DATETIME DEFAULT GETDATE()
+);
+
+GO 
+
+-- dim_product
 
 CREATE TABLE gold.dim_product (
     product_key INT IDENTITY(1,1) PRIMARY KEY,
-    product_id VARCHAR(50) NOT NULL,
-    product_category_name VARCHAR(100) NULL,
-    product_category_name_english VARCHAR(100) NULL,
-    product_name_length INT NULL,
-    product_description_length INT NULL,
-    product_photos_qty INT NULL,
-    product_weight_g INT NULL,
-    product_length_cm INT NULL,
-    product_height_cm INT NULL,
-    product_width_cm INT NULL,
-    created_date DATETIME NOT NULL,
-    updated_date DATETIME NOT NULL
+    product_id VARCHAR(50) NOT NULL UNIQUE,
+    product_category_name VARCHAR(100),
+    product_category_name_english VARCHAR(100),
+    product_name_length INT,
+    product_description_length INT,
+    product_photos_qty INT,
+    product_weight_g INT,
+    product_length_cm DECIMAL(10,2),
+    product_height_cm DECIMAL(10,2),
+    product_width_cm DECIMAL(10,2),
+    created_date DATETIME DEFAULT GETDATE(),
+    updated_date DATETIME DEFAULT GETDATE()
 );
+
+
+
