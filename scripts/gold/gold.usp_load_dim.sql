@@ -90,55 +90,6 @@ END;
 GO
 
 
--- gold.usp_load_customer
-
-CREATE PROCEDURE gold.usp_load_dim_customer
-AS
-BEGIN
-
-    MERGE gold.dim_customer AS target
-    USING (
-        SELECT DISTINCT
-            customer_id,
-            customer_unique_id,
-            customer_zip_code_prefix,
-            customer_city,
-            customer_state
-        FROM silver.customers
-        WHERE customer_id IS NOT NULL
-    ) AS source
-    ON target.customer_id = source.customer_id
-
-    WHEN MATCHED THEN
-        UPDATE SET
-            target.customer_unique_id = source.customer_unique_id,
-            target.customer_zip_code_prefix = source.customer_zip_code_prefix,
-            target.customer_city = source.customer_city,
-            target.customer_state = source.customer_state,
-            target.updated_date = GETDATE()
-
-    WHEN NOT MATCHED THEN
-        INSERT (
-            customer_id,
-            customer_unique_id,
-            customer_zip_code_prefix,
-            customer_city,
-            customer_state,
-            created_date,
-            updated_date
-        )
-        VALUES (
-            source.customer_id,
-            source.customer_unique_id,
-            source.customer_zip_code_prefix,
-            source.customer_city,
-            source.customer_state,
-            GETDATE(),
-            GETDATE()
-        );
-
-END;
-
 
 -- gold.usp_load_sellers
 
@@ -259,5 +210,124 @@ BEGIN
         );
 
 END;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- gold.usp_load_dim_customer
+
+CREATE OR ALTER PROCEDURE gold.usp_load_dim_customer
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    BEGIN TRY
+
+        INSERT INTO etl.etl_logs (process_name, layer, status)
+        VALUES ('usp_load_dim_customer', 'Gold', 'START');
+
+        MERGE gold.dim_customer AS target
+        USING (
+            SELECT DISTINCT
+                customer_id,
+                customer_unique_id,
+                customer_zip_code_prefix,
+                customer_city,
+                customer_state
+            FROM silver.customers
+            WHERE customer_id IS NOT NULL
+        ) AS source
+        ON target.customer_id = source.customer_id
+
+        WHEN MATCHED THEN
+            UPDATE SET
+                target.customer_unique_id = source.customer_unique_id,
+                target.customer_zip_code_prefix = source.customer_zip_code_prefix,
+                target.customer_city = source.customer_city,
+                target.customer_state = source.customer_state,
+                target.updated_date = GETDATE()
+
+        WHEN NOT MATCHED THEN
+            INSERT (
+                customer_id,
+                customer_unique_id,
+                customer_zip_code_prefix,
+                customer_city,
+                customer_state,
+                created_date,
+                updated_date
+            )
+            VALUES (
+                source.customer_id,
+                source.customer_unique_id,
+                source.customer_zip_code_prefix,
+                source.customer_city,
+                source.customer_state,
+                GETDATE(),
+                GETDATE()
+            );
+
+        INSERT INTO etl.etl_logs (process_name, layer, status)
+        VALUES ('usp_load_dim_customer', 'Gold', 'SUCCESS');
+
+    END TRY
+    BEGIN CATCH
+
+        INSERT INTO etl.etl_logs (process_name, layer, status, error_message)
+        VALUES ('usp_load_dim_customer', 'Gold', 'FAILED', ERROR_MESSAGE());
+
+        THROW;
+
+    END CATCH
+END;
+GO
+
+
+
 
 
