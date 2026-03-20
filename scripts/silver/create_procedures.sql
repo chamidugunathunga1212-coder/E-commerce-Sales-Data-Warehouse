@@ -214,12 +214,26 @@ GO
 	
 
 
--- create silver.usp_load_orders procedure
+-- 4. create  silver.usp_load_sellers procedure
 
 CREATE OR ALTER PROCEDURE silver.usp_load_sellers
 AS
-    BEGIN
+BEGIN
+    SET NOCOUNT ON;
 
+    DECLARE @row_count INT;
+
+    BEGIN TRY
+
+        -- 🔹 START LOG
+        INSERT INTO etl.etl_logs (
+            process_name, layer, status
+        )
+        VALUES (
+            'usp_load_sellers', 'Silver', 'START'
+        );
+
+        -- 🔹 MAIN LOGIC
         TRUNCATE TABLE silver.sellers;
 
         INSERT INTO silver.sellers (
@@ -228,16 +242,42 @@ AS
             seller_city,
             seller_state
         )
-
         SELECT 
-	        TRIM(REPLACE(seller_id,'"','')) AS seller_id,
-	        TRY_CAST(TRIM(REPLACE(seller_zip_code_prefix,'"','')) AS INT ) AS seller_zip_code_prefix,
-	        UPPER(TRIM(seller_city)) AS seller_city,
-	        UPPER(RIGHT(TRIM(REPLACE(seller_state,'"','')),2)) AS seller_state
-        FROM bronze.sellers;
+            TRIM(REPLACE(seller_id,'"','')),
+            TRY_CAST(TRIM(REPLACE(seller_zip_code_prefix,'"','')) AS INT),
+            UPPER(TRIM(seller_city)),
+            UPPER(RIGHT(TRIM(REPLACE(seller_state,'"','')),2))
+        FROM bronze.sellers
+        WHERE seller_id IS NOT NULL;
 
-    END;
+        SET @row_count = @@ROWCOUNT;
+
+        -- 🔹 SUCCESS LOG
+        INSERT INTO etl.etl_logs (
+            process_name, layer, status, rows_processed
+        )
+        VALUES (
+            'usp_load_sellers', 'Silver', 'SUCCESS', @row_count
+        );
+
+    END TRY
+    BEGIN CATCH
+
+        -- 🔹 ERROR LOG
+        INSERT INTO etl.etl_logs (
+            process_name, layer, status, error_message
+        )
+        VALUES (
+            'usp_load_sellers', 'Silver', 'FAILED', ERROR_MESSAGE()
+        );
+
+        THROW;
+
+    END CATCH
+END;
 GO
+
+
 
 
 
