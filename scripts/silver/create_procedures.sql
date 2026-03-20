@@ -1,9 +1,24 @@
 
--- create silver.usp_load_orders procedure
+-- 1. create silver.usp_load_orders procedure
 
 CREATE OR ALTER PROCEDURE silver.usp_load_orders
 AS
-    BEGIN
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @row_count INT;
+
+    BEGIN TRY
+
+        -- START LOG
+        INSERT INTO etl.etl_logs (
+            process_name, layer, status
+        )
+        VALUES (
+            'usp_load_orders', 'Silver', 'START'
+        );
+
+        -- MAIN LOGIC
 
         TRUNCATE TABLE silver.orders;
 
@@ -28,9 +43,31 @@ AS
             TRY_CAST(order_estimated_delivery_date AS DATETIME2) AS order_estimated_delivery_date
 
         FROM bronze.orders;
-    END;
-GO
 
+        SET @row_count = @@ROWCOUNT;
+
+        -- SUCCESS LOG
+        INSERT INTO etl.etl_logs (
+            process_name, layer, status, rows_processed
+        )
+        VALUES (
+            'usp_load_orders', 'Silver', 'SUCCESS', @row_count
+        );
+
+    END TRY
+
+    BEGIN CATCH
+
+        -- ERROR LOG
+        INSERT INTO etl.etl_logs (
+            process_name, layer, status, error_message
+        )
+        VALUES (
+            'usp_load_orders', 'Silver', 'FAILED', ERROR_MESSAGE()
+        );
+
+    END CATCH
+END;
 
 
 
