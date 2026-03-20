@@ -500,11 +500,22 @@ END;
 GO
 
 
-
+-- 8. create silver.usp_load_geolocation procedure
+	
 CREATE OR ALTER PROCEDURE silver.usp_load_geolocation
 AS
-    BEGIN
+BEGIN
+    SET NOCOUNT ON;
 
+    DECLARE @row_count INT;
+
+    BEGIN TRY
+
+        -- START LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status)
+        VALUES ('usp_load_geolocation', 'Silver', 'START');
+
+        -- MAIN LOGIC
         TRUNCATE TABLE silver.geolocation;
 
         INSERT INTO silver.geolocation (
@@ -514,19 +525,33 @@ AS
             geolocation_city,
             geolocation_state
         )
-
         SELECT 
-            TRY_CAST(REPLACE(TRIM(geolocation_zip_code_prefix), '"', '') AS INT) AS geolocation_zip_code_prefix,
-            TRY_CAST(TRIM(geolocation_lat) AS DECIMAL(10,6)) AS geolocation_lat,
-            TRY_CAST(TRIM(geolocation_lng) AS DECIMAL(10,6)) AS geolocation_lng,
-            NULLIF(UPPER(TRIM(geolocation_city)), '') AS geolocation_city,
-            TRY_CAST(UPPER(TRIM(geolocation_state)) AS CHAR(2)) AS geolocation_state
-        FROM bronze.geolocation;
-    END;
+            TRY_CAST(REPLACE(TRIM(geolocation_zip_code_prefix), '"', '') AS INT),
+            TRY_CAST(TRIM(geolocation_lat) AS DECIMAL(10,6)),
+            TRY_CAST(TRIM(geolocation_lng) AS DECIMAL(10,6)),
+            NULLIF(UPPER(TRIM(geolocation_city)), ''),
+            LEFT(UPPER(TRIM(geolocation_state)), 2)
+        FROM bronze.geolocation
+        WHERE geolocation_zip_code_prefix IS NOT NULL;
+
+        SET @row_count = @@ROWCOUNT;
+
+        -- SUCCESS LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status, rows_processed)
+        VALUES ('usp_load_geolocation', 'Silver', 'SUCCESS', @row_count);
+
+    END TRY
+    BEGIN CATCH
+
+        -- ERROR LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status, error_message)
+        VALUES ('usp_load_geolocation', 'Silver', 'FAILED', ERROR_MESSAGE());
+
+        THROW;
+
+    END CATCH
+END;
 GO
-
-
-
 
 
 
