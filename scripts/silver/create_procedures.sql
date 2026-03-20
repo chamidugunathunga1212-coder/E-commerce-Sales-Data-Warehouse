@@ -282,15 +282,41 @@ GO
 
 
 
-
-
-
+-- 5. create silver.usp_load_products procedure
 
 CREATE OR ALTER PROCEDURE silver.usp_load_products
 AS
-    BEGIN
+BEGIN
+    SET NOCOUNT ON;
 
+    DECLARE @row_count INT;
+
+    BEGIN TRY
+
+        -- START LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status)
+        VALUES ('usp_load_products', 'Silver', 'START');
+
+        -- MAIN LOGIC
         TRUNCATE TABLE silver.products;
+
+        WITH cleaned_data AS (
+            SELECT
+                REPLACE(TRIM(p.product_id), '"', '') AS product_id,
+                TRIM(p.product_category_name) AS product_category_name,
+                TRIM(t.product_category_name_english) AS product_category_name_english,
+                TRIM(p.product_name_lenght) AS product_name_length,
+                TRIM(p.product_description_lenght) AS product_description_length,
+                TRIM(p.product_photos_qty) AS product_photos_qty,
+                TRIM(p.product_weight_g) AS product_weight_g,
+                TRIM(p.product_length_cm) AS product_length_cm,
+                TRIM(p.product_height_cm) AS product_height_cm,
+                TRIM(p.product_width_cm) AS product_width_cm
+            FROM bronze.products p
+            LEFT JOIN bronze.category_translation t
+                ON TRIM(p.product_category_name) = TRIM(t.product_category_name)
+            WHERE p.product_id IS NOT NULL
+        )
 
         INSERT INTO silver.products (
             product_id,
@@ -303,63 +329,42 @@ AS
             product_length_cm,
             product_height_cm,
             product_width_cm
-
         )
-        SELECT 
-            REPLACE(TRIM(p.product_id), '"', '') AS product_id,
+        SELECT
+            product_id,
 
-            CASE
-                WHEN p.product_category_name IS NULL OR TRIM(p.product_category_name) = '' THEN 'UNKNOWN'
-                ELSE TRIM(p.product_category_name)
-            END AS product_category_name,
+            ISNULL(NULLIF(product_category_name, ''), 'UNKNOWN'),
+            ISNULL(NULLIF(product_category_name_english, ''), 'UNKNOWN'),
 
-            CASE
-                WHEN t.product_category_name_english IS NULL OR TRIM(t.product_category_name_english) = '' THEN 'UNKNOWN'
-                ELSE TRIM(t.product_category_name_english)
-            END AS product_category_name_english,
+            ISNULL(TRY_CAST(product_name_length AS INT), 0),
+            ISNULL(TRY_CAST(product_description_length AS INT), 0),
+            ISNULL(TRY_CAST(product_photos_qty AS INT), 0),
+            ISNULL(TRY_CAST(product_weight_g AS INT), 0),
 
-            CASE
-                WHEN p.product_name_lenght IS NULL OR TRIM(p.product_name_lenght) = '' THEN 0
-                ELSE TRY_CAST(TRIM(p.product_name_lenght) AS INT)
-            END AS product_name_lenght,
+            ISNULL(TRY_CAST(product_length_cm AS DECIMAL(10,2)), 0),
+            ISNULL(TRY_CAST(product_height_cm AS DECIMAL(10,2)), 0),
+            ISNULL(TRY_CAST(product_width_cm AS DECIMAL(10,2)), 0)
 
+        FROM cleaned_data;
 
+        SET @row_count = @@ROWCOUNT;
 
-            CASE
-                WHEN p.product_description_lenght IS NULL OR TRIM(p.product_description_lenght) = '' THEN 0
-                ELSE TRY_CAST(TRIM(p.product_description_lenght) AS INT)
-            END AS product_description_lenght,
+        -- SUCCESS LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status, rows_processed)
+        VALUES ('usp_load_products', 'Silver', 'SUCCESS', @row_count);
 
-            CASE
-                WHEN p.product_photos_qty IS NULL OR TRIM(p.product_photos_qty) = '' THEN 0
-                ELSE TRY_CAST(TRIM(p.product_photos_qty) AS INT)
-            END AS product_photos_qty,
+    END TRY
+    BEGIN CATCH
 
-            CASE
-                WHEN p.product_weight_g IS NULL OR TRIM(p.product_weight_g) = '' THEN 0
-                ELSE TRY_CAST(TRIM(p.product_weight_g) AS INT)
-            END AS product_weight_g,
+        -- ERROR LOG
+        INSERT INTO etl.etl_logs (process_name, layer, status, error_message)
+        VALUES ('usp_load_products', 'Silver', 'FAILED', ERROR_MESSAGE());
 
-            CASE
-                WHEN p.product_length_cm IS NULL OR TRIM(p.product_length_cm) = '' THEN 0
-                ELSE TRY_CAST(TRIM(p.product_length_cm) AS DECIMAL(10,2))
-            END AS product_length_cm,
+        THROW;
 
-            CASE
-                WHEN p.product_height_cm IS NULL OR TRIM(p.product_height_cm) = '' THEN 0
-                ELSE TRY_CAST(TRIM(p.product_height_cm) AS DECIMAL(10,2))
-            END AS product_height_cm,
-
-            CASE
-                WHEN p.product_width_cm IS NULL OR TRIM(p.product_width_cm) = '' THEN 0
-                ELSE TRY_CAST(TRIM(p.product_width_cm) AS DECIMAL(10,2))
-            END AS product_width_cm
-        FROM bronze.products AS p
-        LEFT JOIN bronze.category_translation AS t
-        ON TRIM(p.product_category_name) = TRIM(t.product_category_name);
-    END;
+    END CATCH
+END;
 GO
-
 
 
 CREATE OR ALTER PROCEDURE silver.usp_load_payments
