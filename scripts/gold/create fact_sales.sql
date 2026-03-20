@@ -42,11 +42,11 @@ BEGIN
 
     BEGIN TRY
 
-        -- 🔹 START LOG
+        -- START LOG
         INSERT INTO etl.etl_logs (process_name, layer, status)
         VALUES ('usp_load_fact_sales', 'Gold', 'START');
 
-        -- 🔹 LOAD FACT TABLE
+        -- LOAD FACT TABLE
         INSERT INTO gold.fact_sales (
             order_id,
             order_item_id,
@@ -74,7 +74,7 @@ BEGIN
             oi.price,
             oi.freight_value,
 
-            -- 🔹 delivery_days calculation
+            -- delivery_days calculation
             CASE 
                 WHEN o.order_delivered_customer_date IS NOT NULL 
                      AND o.order_purchase_timestamp IS NOT NULL
@@ -108,7 +108,7 @@ BEGIN
 
         SET @row_count = @@ROWCOUNT;
 
-        -- 🔹 SUCCESS LOG
+        -- SUCCESS LOG
         INSERT INTO etl.etl_logs (
             process_name, layer, status, rows_processed
         )
@@ -119,7 +119,7 @@ BEGIN
     END TRY
     BEGIN CATCH
 
-        -- 🔹 ERROR LOG
+        -- ERROR LOG
         INSERT INTO etl.etl_logs (
             process_name, layer, status, error_message
         )
