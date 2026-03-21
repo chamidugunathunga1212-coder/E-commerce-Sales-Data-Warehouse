@@ -11,16 +11,25 @@ BEGIN
     BEGIN TRY
 
         -- START LOG
-        INSERT INTO etl.etl_logs (
-            process_name, layer, status
-        )
-        VALUES (
-            'usp_load_orders', 'Silver', 'START'
-        );
-
-        -- MAIN LOGIC
+        INSERT INTO etl.etl_logs (process_name, layer, status)
+        VALUES ('usp_load_orders', 'Silver', 'START');
 
         TRUNCATE TABLE silver.orders;
+
+        ;WITH cleaned AS (
+            SELECT 
+                TRIM(REPLACE(order_id,'"','')) AS order_id,
+                TRIM(REPLACE(customer_id,'"','')) AS customer_id,
+                LOWER(TRIM(order_status)) AS order_status,
+
+                TRY_CAST(order_purchase_timestamp AS DATETIME2) AS purchase_ts,
+                TRY_CAST(order_approved_at AS DATETIME2) AS approved_ts,
+                TRY_CAST(order_delivered_carrier_date AS DATETIME2) AS carrier_ts,
+                TRY_CAST(order_delivered_customer_date AS DATETIME2) AS delivered_ts,
+                TRY_CAST(order_estimated_delivery_date AS DATETIME2) AS estimated_ts
+
+            FROM bronze.orders
+        )
 
         INSERT INTO silver.orders (
             order_id,
@@ -33,16 +42,45 @@ BEGIN
             order_estimated_delivery_date
         )
         SELECT 
-	        TRIM(REPLACE(order_id,'"','')) AS order_id,
-            TRIM(REPLACE(customer_id,'"','')) AS customer_id,
-            LOWER(TRIM(order_status)) AS order_status,
-            TRY_CAST(order_purchase_timestamp AS DATETIME2) AS order_purchase_timestamp,
-            TRY_CAST(order_approved_at AS DATETIME2) AS order_approved_at,
-            TRY_CAST(order_delivered_carrier_date AS DATETIME2) AS order_delivered_carrier_date,
-            TRY_CAST(order_delivered_customer_date AS DATETIME2) AS order_delivered_customer_date,
-            TRY_CAST(order_estimated_delivery_date AS DATETIME2) AS order_estimated_delivery_date
+            order_id,
+            customer_id,
+            order_status,
 
-        FROM bronze.orders;
+            -- purchase
+            CASE 
+                WHEN purchase_ts BETWEEN '2015-01-01' AND GETDATE()
+                THEN purchase_ts ELSE NULL
+            END,
+
+            -- approved
+            CASE 
+                WHEN approved_ts >= purchase_ts 
+                     AND approved_ts BETWEEN '2015-01-01' AND GETDATE()
+                THEN approved_ts ELSE NULL
+            END,
+
+            -- carrier
+            CASE 
+                WHEN carrier_ts >= purchase_ts 
+                     AND carrier_ts BETWEEN '2015-01-01' AND GETDATE()
+                THEN carrier_ts ELSE NULL
+            END,
+
+            -- delivered
+            CASE 
+                WHEN delivered_ts >= purchase_ts 
+                     AND delivered_ts BETWEEN '2015-01-01' AND GETDATE()
+                THEN delivered_ts ELSE NULL
+            END,
+
+            -- estimated (allow future)
+            CASE 
+                WHEN estimated_ts >= purchase_ts 
+                     AND estimated_ts <= DATEADD(YEAR, 5, GETDATE())
+                THEN estimated_ts ELSE NULL
+            END
+
+        FROM cleaned;
 
         SET @row_count = @@ROWCOUNT;
 
@@ -55,19 +93,25 @@ BEGIN
         );
 
     END TRY
-
     BEGIN CATCH
 
-        -- ERROR LOG
         INSERT INTO etl.etl_logs (
             process_name, layer, status, error_message
         )
         VALUES (
-            'usp_load_orders', 'Silver', 'FAILED', ERROR_MESSAGE()
+            'usp_load_orders',
+            'Silver',
+            'FAILED',
+            ERROR_MESSAGE() + ' | Line: ' + CAST(ERROR_LINE() AS VARCHAR)
         );
+
+        THROW;
 
     END CATCH
 END;
+
+
+
 
 
 
