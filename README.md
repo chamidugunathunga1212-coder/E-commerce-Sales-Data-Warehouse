@@ -17,3 +17,64 @@ E-commerce Sales Data Warehouse using SQL Server, SSIS, and Power BI
 ## gold - dimensional model
 
 ## etl - ETL logs
+
+
+
+        ┌────────────────────┐
+        │   Source System    │
+        │   (CSV Files)      │
+        └────────┬───────────┘
+                 │
+                 ▼
+        ┌────────────────────┐
+        │  SSIS Package 01   │
+        │  Load Bronze       │
+        └────────┬───────────┘
+                 │
+                 ▼
+        ┌────────────────────┐
+        │   Bronze Layer     │
+        │ (Raw Data Tables)  │
+        └────────┬───────────┘
+                 │
+                 ▼
+        ┌────────────────────┐
+        │  SSIS Package 02   │
+        │ Transform → Silver │
+        └────────┬───────────┘
+                 │
+                 ▼
+        ┌────────────────────┐
+        │   Silver Layer     │
+        │ (Cleaned Data)     │
+        └────────┬───────────┘
+                 │
+                 ▼
+        ┌────────────────────┐
+        │  SSIS Package 03   │
+        │ Load Dimensions    │
+        └────────┬───────────┘
+                 │
+                 ▼
+        ┌────────────────────┐
+        │   Gold Layer       │
+        │ (Dim Tables)       │
+        └────────┬───────────┘
+                 │
+                 ▼
+        ┌────────────────────┐
+        │  SSIS Package 04   │
+        │ Load Facts         │
+        └────────┬───────────┘
+                 │
+                 ▼
+        ┌────────────────────┐
+        │   Fact Tables      │
+        │ (Business Metrics) │
+        └────────┬───────────┘
+                 │
+                 ▼
+        ┌────────────────────┐
+        │   Reporting Layer  │
+        │ (Power BI / SQL)   │
+        └────────────────────┘
