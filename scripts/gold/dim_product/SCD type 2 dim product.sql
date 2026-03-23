@@ -6,12 +6,13 @@ BEGIN
     DECLARE @row_count INT;
 
     BEGIN TRY
+
         -- START LOG
         INSERT INTO etl.etl_logs (process_name, layer, status)
         VALUES ('usp_load_dim_product', 'Gold', 'START');
 
         ---------------------------------------------------
-        -- 1. INSERT BRAND NEW PRODUCTS
+        -- 1. INSERT NEW PRODUCTS
         ---------------------------------------------------
         INSERT INTO gold.dim_product (
             product_id,
@@ -39,7 +40,7 @@ BEGIN
             s.product_length_cm,
             s.product_height_cm,
             s.product_width_cm,
-            GETDATE(),
+            '2015-01-01',
             NULL,
             1
         FROM silver.products s
@@ -49,7 +50,7 @@ BEGIN
         WHERE d.product_id IS NULL;
 
         ---------------------------------------------------
-        -- 2. EXPIRE OLD RECORDS IF ANY CHANGE DETECTED
+        -- 2. EXPIRE OLD RECORDS
         ---------------------------------------------------
         UPDATE d
         SET 
@@ -59,20 +60,14 @@ BEGIN
         JOIN silver.products s
             ON d.product_id = s.product_id
         WHERE d.is_current = 1
-          AND (
-              ISNULL(d.product_category_name,'') <> ISNULL(s.product_category_name,'')
-           OR ISNULL(d.product_category_name_english,'') <> ISNULL(s.product_category_name_english,'')
-           OR ISNULL(d.product_weight_g,0) <> ISNULL(s.product_weight_g,0)
-           OR ISNULL(d.product_name_length,0) <> ISNULL(s.product_name_length,0)
-           OR ISNULL(d.product_description_length,0) <> ISNULL(s.product_description_length,0)
-           OR ISNULL(d.product_photos_qty,0) <> ISNULL(s.product_photos_qty,0)
-           OR ISNULL(d.product_length_cm,0) <> ISNULL(s.product_length_cm,0)
-           OR ISNULL(d.product_height_cm,0) <> ISNULL(s.product_height_cm,0)
-           OR ISNULL(d.product_width_cm,0) <> ISNULL(s.product_width_cm,0)
-          );
+        AND (
+            ISNULL(d.product_category_name,'') <> ISNULL(s.product_category_name,'')
+            OR ISNULL(d.product_category_name_english,'') <> ISNULL(s.product_category_name_english,'')
+            OR ISNULL(d.product_weight_g,0) <> ISNULL(s.product_weight_g,0)
+        );
 
         ---------------------------------------------------
-        -- 3. INSERT NEW VERSION FOR CHANGED RECORDS (ONLY LATEST EXPIRED)
+        -- 3. INSERT NEW VERSION
         ---------------------------------------------------
         INSERT INTO gold.dim_product (
             product_id,
@@ -107,14 +102,12 @@ BEGIN
         JOIN gold.dim_product d
             ON s.product_id = d.product_id
         WHERE d.is_current = 0
-          AND d.end_date = (
-              SELECT MAX(d2.end_date)
-              FROM gold.dim_product d2
-              WHERE d2.product_id = d.product_id
-          );
+        AND d.end_date = (
+            SELECT MAX(d2.end_date)
+            FROM gold.dim_product d2
+            WHERE d2.product_id = d.product_id
+        );
 
-        ---------------------------------------------------
-        -- 4. LOG ROW COUNT
         ---------------------------------------------------
         SET @row_count = @@ROWCOUNT;
 
@@ -127,3 +120,5 @@ BEGIN
         VALUES ('usp_load_dim_product', 'Gold', 'FAILED', ERROR_MESSAGE());
     END CATCH
 END;
+
+
