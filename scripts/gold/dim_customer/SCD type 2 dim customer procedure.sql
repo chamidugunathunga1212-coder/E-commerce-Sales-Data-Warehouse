@@ -11,8 +11,10 @@ BEGIN
         INSERT INTO etl.etl_logs (process_name, layer, status)
         VALUES ('usp_load_dim_customer', 'Gold', 'START');
 
-        -- INSERT NEW CUSTOMERS
-        INSERT gold.dim_customer  (
+        ---------------------------------------------------
+        -- 1. INSERT BRAND NEW CUSTOMERS
+        ---------------------------------------------------
+        INSERT INTO gold.dim_customer (
             customer_id,
             customer_unique_id,
             customer_zip_code_prefix,
@@ -37,7 +39,9 @@ BEGIN
             AND d.is_current = 1
         WHERE d.customer_id IS NULL;
 
-        -- HANDLE CHANGES (SCD TYPE 2)
+        ---------------------------------------------------
+        -- 2. HANDLE CHANGES (EXPIRE OLD RECORD)
+        ---------------------------------------------------
         UPDATE d
         SET 
             d.end_date = GETDATE(),
@@ -51,7 +55,9 @@ BEGIN
             OR ISNULL(d.customer_state,'') <> ISNULL(s.customer_state,'')
         );
 
-        -- INSERT NEW VERSION
+        ---------------------------------------------------
+        -- 3. INSERT NEW VERSION (ONLY FOR CHANGED RECORDS)
+        ---------------------------------------------------
         INSERT INTO gold.dim_customer (
             customer_id,
             customer_unique_id,
@@ -74,8 +80,14 @@ BEGIN
         FROM silver.customers s
         JOIN gold.dim_customer d
             ON s.customer_id = d.customer_id
-        WHERE d.is_current = 0;
+        WHERE d.is_current = 0
+        AND d.end_date = (
+            SELECT MAX(d2.end_date)
+            FROM gold.dim_customer d2
+            WHERE d2.customer_id = d.customer_id
+        );
 
+        ---------------------------------------------------
         SET @row_count = @@ROWCOUNT;
 
         -- SUCCESS LOG
@@ -90,3 +102,4 @@ BEGIN
 
     END CATCH
 END;
+
