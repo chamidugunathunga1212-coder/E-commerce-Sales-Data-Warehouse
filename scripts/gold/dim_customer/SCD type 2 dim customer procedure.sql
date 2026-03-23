@@ -12,7 +12,7 @@ BEGIN
         VALUES ('usp_load_dim_customer', 'Gold', 'START');
 
         ---------------------------------------------------
-        -- 1. INSERT BRAND NEW CUSTOMERS
+        -- 1. INSERT NEW CUSTOMERS
         ---------------------------------------------------
         INSERT INTO gold.dim_customer (
             customer_id,
@@ -30,7 +30,7 @@ BEGIN
             s.customer_zip_code_prefix,
             s.customer_city,
             s.customer_state,
-            GETDATE(),
+            '2015-01-01', 
             NULL,
             1
         FROM silver.customers s
@@ -40,7 +40,7 @@ BEGIN
         WHERE d.customer_id IS NULL;
 
         ---------------------------------------------------
-        -- 2. HANDLE CHANGES (EXPIRE OLD RECORD)
+        -- 2. EXPIRE OLD RECORDS
         ---------------------------------------------------
         UPDATE d
         SET 
@@ -56,7 +56,7 @@ BEGIN
         );
 
         ---------------------------------------------------
-        -- 3. INSERT NEW VERSION (ONLY FOR CHANGED RECORDS)
+        -- 3. INSERT NEW VERSION
         ---------------------------------------------------
         INSERT INTO gold.dim_customer (
             customer_id,
@@ -74,7 +74,7 @@ BEGIN
             s.customer_zip_code_prefix,
             s.customer_city,
             s.customer_state,
-            GETDATE(),
+            GETDATE(),   -- ✔ correct for change tracking
             NULL,
             1
         FROM silver.customers s
@@ -90,16 +90,16 @@ BEGIN
         ---------------------------------------------------
         SET @row_count = @@ROWCOUNT;
 
-        -- SUCCESS LOG
         INSERT INTO etl.etl_logs (process_name, layer, status, rows_processed)
         VALUES ('usp_load_dim_customer', 'Gold', 'SUCCESS', @row_count);
 
     END TRY
     BEGIN CATCH
-
         INSERT INTO etl.etl_logs (process_name, layer, status, error_message)
         VALUES ('usp_load_dim_customer', 'Gold', 'FAILED', ERROR_MESSAGE());
-
     END CATCH
 END;
+
+
+
 
