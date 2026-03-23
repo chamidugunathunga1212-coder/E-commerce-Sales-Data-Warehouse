@@ -12,7 +12,7 @@ BEGIN
         VALUES ('usp_load_dim_customer', 'Gold', 'START');
 
         -- INSERT NEW CUSTOMERS
-        INSERT INTO gold.dim_customer (
+        INSERT gold.dim_customer  (
             customer_id,
             customer_unique_id,
             customer_zip_code_prefix,
@@ -20,9 +20,7 @@ BEGIN
             customer_state,
             start_date,
             end_date,
-            is_current,
-            created_date,
-            updated_date
+            is_current
         )
         SELECT 
             s.customer_id,
@@ -32,9 +30,7 @@ BEGIN
             s.customer_state,
             GETDATE(),
             NULL,
-            1,
-            GETDATE(),
-            GETDATE()
+            1
         FROM silver.customers s
         LEFT JOIN gold.dim_customer d
             ON s.customer_id = d.customer_id
@@ -64,9 +60,7 @@ BEGIN
             customer_state,
             start_date,
             end_date,
-            is_current,
-            created_date,
-            updated_date
+            is_current
         )
         SELECT 
             s.customer_id,
@@ -76,9 +70,7 @@ BEGIN
             s.customer_state,
             GETDATE(),
             NULL,
-            1,
-            GETDATE(),
-            GETDATE()
+            1
         FROM silver.customers s
         JOIN gold.dim_customer d
             ON s.customer_id = d.customer_id
